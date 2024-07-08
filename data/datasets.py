@@ -8,6 +8,12 @@ from torch.utils.data import Dataset
 from collections import defaultdict
 
 
+class TextData():
+    def __init__(self, csv_file):
+        data = pd.read_csv(csv_file)
+        self.data = data['question'] + data['answer']
+
+
 class Tokenizer():
     def __init__(self, max_len=1024):
         self.word2idx = {}
