@@ -31,7 +31,7 @@ class ImageModel(nn.Module):
 
 
 class QuestionModel(nn.Module):
-    def __init__(self, vocab_size, embed_size=500, hidden_size=1024):
+    def __init__(self, vocab_size, input_size=500, embed_size=500, hidden_size=1024):
         super().__init__()
         self.embed = nn.Embedding(
             num_embeddings=vocab_size, embedding_dim=embed_size)
@@ -39,9 +39,7 @@ class QuestionModel(nn.Module):
             input_size=500, hidden_size=hidden_size, batch_first=True)
 
     def forward(self, text):
-        text = text.long()
         text_features = self.embed(text)
-        text_features = text_features.squeeze(1)
         output, (h_n, c_n) = self.lstm(text_features)
         return h_n  # ht, (batch_size, embed_size)
 
@@ -80,6 +78,5 @@ class SANModel(nn.Module):
 
         u1 = self.compute_attention(vI, u0)
         ff_u1 = self.ff_ans(u1)
-        softmax = nn.Softmax(dim=1)
-        p_ans = softmax(ff_u1)
+        p_ans = self.softmax(ff_u1)
         return p_ans

@@ -86,6 +86,7 @@ class VQADataset(Dataset):
         # Preprocess answer
         answer = answer.replace(" ", "").split(",")[0]
         answer = self.tokenizer.encode(answer, padding=False)
+        answer = torch.tensor(answer, dtype=torch.long)
 
         return {
             'image': image,
