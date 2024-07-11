@@ -5,7 +5,6 @@ LR = 0.05
 
 
 def loss_fn(logits, labels):
-    logits = logits.squeeze()
     labels = labels.squeeze()
     criterion = nn.CrossEntropyLoss()
     loss = criterion(logits, labels)
@@ -13,12 +12,12 @@ def loss_fn(logits, labels):
     return loss
 
 
-def get_optimizer(model, lr=0.005):
+def get_optimizer(model, lr):
     return torch.optim.SGD(model.parameters(), lr=lr)
 
 
-def train(model, dataloader):
-    optimizer = get_optimizer(model)
+def train(model, dataloader, learning_rate=0.05):
+    optimizer = get_optimizer(model, learning_rate)
     model.train()
 
     batch_loss = []
