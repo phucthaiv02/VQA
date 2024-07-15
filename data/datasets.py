@@ -61,10 +61,6 @@ class VQADataset(Dataset):
         self.max_len = max_len
         self.transform = transform
 
-        # Build vocabulary
-        self.tokenizer.build_vocab(
-            self.data['question'].tolist() + self.data['answer'].tolist())
-
     def __len__(self):
         return len(self.data)
 

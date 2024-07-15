@@ -25,7 +25,7 @@ IMAGE_FOLDER = 'data\\raw\\images'
 
 TOKENIZER_PKL = 'data\\tokenizer.pkl'
 MAX_LEN = 64
-BATCH_SIZE = 1
+BATCH_SIZE = 32
 NUM_EPOCHS = 10
 
 if __name__ == '__main__':

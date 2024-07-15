@@ -1,8 +1,6 @@
 import torch
 from torch import nn
 
-LR = 0.05
-
 
 def loss_fn(logits, labels):
     labels = labels.squeeze()
@@ -13,29 +11,36 @@ def loss_fn(logits, labels):
 
 
 def get_optimizer(model, lr):
-    return torch.optim.SGD(model.parameters(), lr=lr)
+    return torch.optim.Adam(model.parameters(), lr=lr)
 
 
-def train(model, dataloader, learning_rate=0.05):
+def train(model, dataloader, learning_rate=5e-3):
+    num_samples = len(dataloader.dataset)
+
     optimizer = get_optimizer(model, learning_rate)
     model.train()
 
-    batch_loss = []
+    total_loss = 0
+    correct = 0
     for batch in dataloader:
         images = batch['image'].to('cuda')
         questions = batch['question'].to('cuda')
         answer = batch['answer'].to('cuda')
 
-        predict = model(images, questions)
-        loss = loss_fn(predict, answer)
-
-        batch_loss.append(loss)
+        optimizer.zero_grad()
+        output = model(images, questions)
+        loss = loss_fn(output, answer)
         loss.backward()
         optimizer.step()
-        optimizer.zero_grad()
 
-    avg_loss = sum(batch_loss) / len(dataloader.dataset)
-    print('epoch loss: ', avg_loss)
+        _, predict = torch.max(output, 1)
+        correct += (predict == answer).sum().item()
+        total_loss += loss.item()
+
+    avg_loss = total_loss / num_samples
+    accuracy = correct / num_samples
+
+    return model, {'loss': avg_loss, 'acc': accuracy}
 
 
 def evaluate():

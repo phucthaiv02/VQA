@@ -8,7 +8,7 @@ IMAGE_WEIGHTS = 'models\\weights\\vgg19_bn_weights.pth'
 
 class ImageModel(nn.Module):
     def __init__(self, embed_size=1024):
-        super().__init__()
+        super(ImageModel, self).__init__()
         try:
             model = torchvision.models.vgg19_bn()
             model.load_state_dict(torch.load(IMAGE_WEIGHTS))
@@ -33,11 +33,9 @@ class ImageModel(nn.Module):
 
 
 class QuestionModel(nn.Module):
-
-    def __init__(self, qst_vocab_size, word_embed_size=500, embed_size=1024, num_layers=2, hidden_size=64):
-
+    def __init__(self, vocab_size, word_embed_size, embed_size,  hidden_size, num_layers=2):
         super(QuestionModel, self).__init__()
-        self.word2vec = nn.Embedding(qst_vocab_size, word_embed_size)
+        self.word2vec = nn.Embedding(vocab_size, word_embed_size)
         self.tanh = nn.Tanh()
         self.lstm = nn.LSTM(word_embed_size, hidden_size, num_layers)
         # 2 for hidden and cell states
@@ -58,40 +56,44 @@ class QuestionModel(nn.Module):
 
 
 class SANModel(nn.Module):
-    def __init__(self, vocab_size):
-        super().__init__()
-        self.image_model = ImageModel()
-        self.question_model = QuestionModel(vocab_size)
+    def __init__(self, vocab_size, embed_size=1024, word_embed_size=500, num_layers=2, hidden_size=64):
+        super(SANModel, self).__init__()
+        self.image_model = ImageModel(embed_size=embed_size)
+        self.question_model = QuestionModel(
+            vocab_size=vocab_size, word_embed_size=word_embed_size, embed_size=embed_size, hidden_size=hidden_size)
+        self.attention_stack = nn.ModuleList([Attention(512, embed_size)]*2)
+        self.mlp = nn.Sequential(nn.Dropout(
+            p=0.5), nn.Linear(embed_size, vocab_size), nn.Softmax(dim=1))
 
-        self.tanh = nn.Tanh()
+    def forward(self, img, qst):
+        img_features = self.image_model(img)
+        qst_features = self.question_model(qst)
+        vi = img_features
+        u = qst_features
+        for attn_layer in self.attention_stack:
+            u = attn_layer(vi, u)
 
-        self.ff_question = nn.Linear(in_features=1024, out_features=512)
-        self.ff_image = nn.Linear(
-            in_features=1024, out_features=512, bias=False)
-        self.ff_attention = nn.Linear(in_features=512, out_features=1)
+        output = self.mlp(u)
+        return output
 
-        self.ff_ans = nn.Linear(in_features=1024, out_features=vocab_size)
 
-        self.softmax = nn.Softmax(dim=1)
+class Attention(nn.Module):
+    def __init__(self, num_channels, embed_size, dropout=True):
+        super(Attention, self).__init__()
+        self.ff_image = nn.Linear(embed_size, num_channels)
+        self.ff_question = nn.Linear(embed_size, num_channels)
+        self.dropout = nn.Dropout(p=0.5)
+        self.ff_attention = nn.Linear(num_channels, 1)
 
-    def compute_attention(self, vi, vq):
+    def forward(self, vi, vq):
         hi = self.ff_image(vi)
         hq = self.ff_question(vq).unsqueeze(dim=1)
-        hA = self.tanh(hi + hq)
-        hA_atn = self.ff_attention(hA)
-        pI = self.softmax(hA_atn)
+        ha = torch.tanh(hi + hq)
+        if self.dropout:
+            ha = self.dropout(ha)
+        hA_atn = self.ff_attention(ha)
+        pI = torch.softmax(hA_atn, dim=1)
         vI_attended = (pI * vi).sum(dim=1)
         u = vI_attended + vq
+
         return u
-
-    def forward(self, image, question):
-        vI = self.image_model(image)  # (batch_size, 196, 1024)
-        vQ = self.question_model(question)  # (batch_size, 1, 1024)
-
-        u0 = self.compute_attention(vI, vQ)
-
-        u1 = self.compute_attention(vI, u0)
-        ff_u1 = self.ff_ans(u1)
-        softmax = nn.Softmax(dim=1)
-        p_ans = softmax(ff_u1)
-        return p_ans
