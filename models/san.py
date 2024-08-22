@@ -63,7 +63,7 @@ class SANModel(nn.Module):
             vocab_size=vocab_size, word_embed_size=word_embed_size, embed_size=embed_size, hidden_size=hidden_size)
         self.attention_stack = nn.ModuleList([Attention(512, embed_size)]*2)
         self.mlp = nn.Sequential(nn.Dropout(
-            p=0.5), nn.Linear(embed_size, vocab_size), nn.Softmax(dim=1))
+            p=0.5), nn.Linear(embed_size, vocab_size))
 
     def forward(self, img, qst):
         img_features = self.image_model(img)
