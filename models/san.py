@@ -3,19 +3,12 @@ import torchvision
 from torch import nn
 
 
-IMAGE_WEIGHTS = 'models\\weights\\vgg19_bn_weights.pth'
-
-
 class ImageModel(nn.Module):
     def __init__(self, embed_size=1024):
         super(ImageModel, self).__init__()
-        try:
-            model = torchvision.models.vgg19_bn()
-            model.load_state_dict(torch.load(IMAGE_WEIGHTS))
-        except:
-            model = torchvision.models.vgg19_bn(
-                weights=torchvision.models.VGG19_BN_Weights.IMAGENET1K_V1)
-            torch.save(model.state_dict(), IMAGE_WEIGHTS)
+
+        model = torchvision.models.vgg19_bn(
+            weights=torchvision.models.VGG19_BN_Weights.IMAGENET1K_V1)
 
         vgg_feature = list(model.features.children())
         self.backbone = nn.Sequential(*vgg_feature)
@@ -63,7 +56,7 @@ class SANModel(nn.Module):
             vocab_size=vocab_size, word_embed_size=word_embed_size, embed_size=embed_size, hidden_size=hidden_size)
         self.attention_stack = nn.ModuleList([Attention(512, embed_size)]*2)
         self.mlp = nn.Sequential(nn.Dropout(
-            p=0.5), nn.Linear(embed_size, vocab_size), nn.Softmax(dim=1))
+            p=0.5), nn.Linear(embed_size, vocab_size))
 
     def forward(self, img, qst):
         img_features = self.image_model(img)
