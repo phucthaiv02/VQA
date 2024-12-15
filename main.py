@@ -74,10 +74,18 @@ if __name__ == '__main__':
 
         model = SANModel(tokenizer.vocab_size).to('cuda')
 
-    logger.info('Train model ...')
-    for epoch in range(1, NUM_EPOCHS + 1):
-        model, history = train(model, train_loader)
-        # score = evaluate(model, test_loader)
+        logger.info('Train model ...')
+        for epoch in range(1, NUM_EPOCHS + 1):
+            model, metrics = train(model, test_loader, learning_rate=0.5)
+            eval_metrics = evaluate(model, test_loader)
+            print(f'Epoch {epoch}/{NUM_EPOCHS}:')
+            print(
+                f"\ttrain_loss: {metrics['loss']}, train_acc: {metrics['acc']}")
+            print(
+                f"\tval_loss: {eval_metrics['loss']}, val_acc: {eval_metrics['acc']}")
+            torch.save(model, f'output/ckp{epoch}.pth')
+
+        torch.save(model, 'output/last_model.pth')
         # saved = save_result(model, history, score)
     elif args.infer:
         if not args.image or not args.question:
